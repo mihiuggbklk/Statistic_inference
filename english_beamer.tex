@@ -284,35 +284,139 @@ Both estimators inherit the DNN convergence rate, which depends on the composite
 \end{block}
 \end{frame}
 
-\begin{frame}{Simulation design and main findings}
+% ============================================
+% Section: Experiments
+% ============================================
+
+\begin{frame}{Simulation design}
+\begin{columns}[T]
+\column{0.50\textwidth}
+\begin{block}{Setup}
 \begin{itemize}
-  \item Population size: $N=20000$; sample sizes: $n_A=500$, $n_B=1000$.
-  \item True propensity score is nonlinear: interactions, squared terms, sine and log terms.
-  \item Compared estimators: naive mean, REG, IPW, DR, DIPW, DDR.
-\end{itemize}
-\vspace{0.15cm}
-\begin{block}{Main patterns}
-\begin{itemize}
-  \item \textbf{TF}: outcome model correct, parametric propensity wrong. DIPW improves over IPW; DDR has small bias and MSE.
-  \item \textbf{FF}: both parametric working models wrong. REG, IPW and DR deteriorate; DIPW and DDR remain more stable.
+  \item $N=20\,000$, $n_A=500$, $n_B=1000$, $B=500$
+  \item Outcome: $y_i = 2 + \sum_{j=1}^4 x_{ji} + \sigma\varepsilon_i$
+  \item $\rho=\operatorname{corr}(y,x^{\top}\beta)\in\{0.30,0.50,0.80\}$
 \end{itemize}
 \end{block}
-\begin{alertblock}{Important nuance}
-The strong FF performance is finite-sample evidence in this simulation, not a guarantee under arbitrary misspecification.
-\end{alertblock}
+\column{0.50\textwidth}
+\begin{block}{True propensity (nonlinear)}
+\footnotesize
+\[
+\operatorname{logit}(\pi_i^A)=\theta_0 + 0.05x_1x_2+0.1x_2^2+0.05x_3x_4
+\]
+\[
++0.08\sin(0.3x_3)+0.05\ln(1+x_2+x_4)
+\]
+\normalsize
+\end{block}
+\end{columns}
+\vspace{0.2cm}
+\begin{columns}[T]
+\column{0.50\textwidth}
+\begin{block}{TF: outcome correct, propensity wrong}
+Fitted logit is linear in $x$; omits interactions, squares, $\sin$, $\log$.
+\end{block}
+\column{0.50\textwidth}
+\begin{block}{FF: both models wrong}
+Outcome: $x_4$ omitted; Propensity: same linear logit.
+\end{block}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Simulation results ($\rho=0.50$)}
+\begin{columns}[T]
+\column{0.50\textwidth}
+\begin{block}{TF scenario}
+\small
+\begin{tabular}{lrr}
+\toprule
+Estimator & \%RB & MSE \\
+\midrule
+Naive ($\bar{y}$) & 74.67 & 47.97 \\
+REG  & \underline{$-0.67$} & \underline{0.25} \\
+IPW  & $-5.87$ & 7.47 \\
+DR   & 0.73  & 4.06 \\
+DIPW & 2.10  & 1.70 \\
+DDR  & \underline{$-0.46$} & 0.62 \\
+\bottomrule
+\end{tabular}
+\vspace{0.15cm}
+
+REG best (outcome correct);\\
+DDR close behind via DNN propensity.
+\end{block}
+\column{0.50\textwidth}
+\begin{block}{FF scenario}
+\small
+\begin{tabular}{lrr}
+\toprule
+Estimator & \%RB & MSE \\
+\midrule
+Naive ($\bar{y}$) & 74.66 & 47.97 \\
+REG  & 79.06 & 53.81 \\
+IPW  & $-5.80$ & 7.48 \\
+DR   & \textbf{$-24.21$} & 10.07 \\
+DIPW & 2.77  & 1.77 \\
+DDR  & \underline{$-0.26$} & \underline{1.49} \\
+\bottomrule
+\end{tabular}
+\vspace{0.15cm}
+
+REG bias flips ($+79\%$);\\
+DR worse than IPW ($-24.2\%$);\\
+DDR stable ($-0.26\%$).
+\end{block}
+\end{columns}
+\vspace{0.1cm}
+\begin{center}
+\small DDR reduces IPW's MSE by \textbf{92\%} (TF) and \textbf{80\%} (FF).
+\end{center}
 \end{frame}
 
 \begin{frame}{Empirical application}
+\begin{columns}[T]
+\column{0.45\textwidth}
+\begin{block}{Data}
 \begin{itemize}
-  \item Nonprobability data: 2015 Pew Research Center sample, $n_A=9301$.
-  \item Probability reference: 2015 BRFSS, $n_B=441456$.
-  \item Common covariates: age, gender, race, region, marital status, employment, education.
-  \item Outcomes include neighbor trust, political participation, local voting, and drinking days.
+  \item PRC 2015: $n_A=9\,301$ (nonprob.)
+  \item BRFSS 2015: $n_B=441\,456$ (prob.)
+  \item 8 covariates, 7 outcomes (civic/political participation, drinking)
 \end{itemize}
-\vspace{0.3cm}
-\begin{block}{Empirical interpretation}
-Adjusted estimators differ from the raw nonprobability mean, showing that the probability sample changes the target-population adjustment. Since the true population means are unknown, the application mainly illustrates implementation rather than definitive accuracy.
 \end{block}
+\column{0.55\textwidth}
+\begin{block}{Covariate imbalance (\%)}
+\footnotesize
+\begin{tabular}{lrr}
+\toprule
+& PRC & BRFSS \\
+\midrule
+White only  & 82.3 & 75.1 \\
+Hispanic    & 9.3  & 16.5 \\
+HS or less  & 21.6 & 42.7 \\
+Bachelor's+ & 41.6 & 26.3 \\
+\bottomrule
+\end{tabular}
+
+\small PRC oversamples whites \& college-educated.
+\end{block}
+\end{columns}
+\vspace{-0.15cm}
+\begin{block}{Selected estimates (\%)}
+\footnotesize
+\begin{tabular}{lcccccc}
+\toprule
+Outcome & Naive & REG & IPW & DR & DIPW & DDR \\
+\midrule
+Trust neighbors      & 59.0 & 54.7 & 54.9 & 54.7 & 51.7 & \textbf{52.1} \\
+Express opinions     & 26.5 & 23.8 & 23.9 & 23.9 & 26.8 & \textbf{22.3} \\
+Voted local elections& 75.0 & 70.0 & 70.3 & 70.1 & 71.0 & \textbf{70.1} \\
+\bottomrule
+\end{tabular}
+\end{block}
+\vspace{-0.15cm}
+\begin{center}
+\footnotesize DDR: trust $-6.9$pp, opinions $-4.2$pp $\Rightarrow$ selection bias matters for civic outcomes.
+\end{center}
 \end{frame}
 
 \begin{frame}[allowframebreaks]{References}

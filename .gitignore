@@ -16,6 +16,10 @@
 # PDFs are kept (they're deliverables)
 # *.pdf
 
+# Temp files
+arxiv_page.html
+paper_html.html
+
 # OS files
 .DS_Store
 Thumbs.db
